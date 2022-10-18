@@ -1,0 +1,1087 @@
+
+
+
+--// Current source all of it was made by Moon
+
+--Main Stuff--
+local GetService = setmetatable({}, {
+    __index = function(self, key)
+        return game:GetService(key)
+    end
+})
+
+local PuppywareSettings = getgenv().PuppywareSettings
+
+if PuppywareSettings == nil then
+
+getgenv().PuppywareSettings = {
+    PerformanceMode = true,
+    turksense = false,
+    TargetKey = "Q",
+    Watermark = false
+}
+
+end
+
+
+-- Create Name For Ui--
+local Script = {
+Version = "v0.0.5",
+Name = "moonassist private"
+}
+
+local Settings = {
+Prediction_Settings = {
+    AutoSettings = false,
+    Prediction = 0.165
+},
+Aimbot = {
+    Enabled = false,
+    Aiming = false,
+    FOV = {
+        Enabled = false,
+        Size = 100,
+        Round = 100,
+        Color = Color3.fromRGB(28, 56, 139),
+        Shape = "Custom",
+        Filled = false,
+        Transparency = 0.5
+    },
+    Hitbox = "Head",
+    Nearest = "Mouse",
+    VisibleCheck = false,
+    IgnoreFOV = false,
+},
+SilentAim = {
+    Enabled = false,
+    WallCheck = false,
+    FOV = {
+        Enabled = false,
+        Size = 100,
+        Round = 100,
+        Color = Color3.fromRGB(28, 56, 139),
+        Shape = "Custom",
+        Filled = false,
+        Transparency = 0.5
+    },
+    Hitbox = "Head",
+    Nearest = "Mouse",
+    Mode = "Normal",
+    VisibleCheck = false,
+    IgnoreFOV = false,
+    LookAt = false,
+},
+Whitelist = {
+    Players = {},
+    Friends = {},
+    Holder = "",
+    Enabled = false,
+    CrewEnabled = false,
+    FriendsWhitelist = false
+},
+Target = {
+    Enabled = false,
+    TargetUser = nil,
+    WallCheck = false,
+    Bind = PuppywareSettings.TargetKey
+}
+}
+
+local Service = setmetatable({}, {
+__index = function(t, k)
+    return game:GetService(k)
+end
+})
+
+local WS = workspace
+local Insert = table.insert
+local Remove = table.remove
+local Find = table.find
+local Players = Service.Players
+local LocalPlayer = Players.LocalPlayer
+local CurrentCamera = WS.CurrentCamera
+local WorldToViewPortPoint = CurrentCamera.WorldToViewportPoint
+local Mouse = LocalPlayer:GetMouse()
+local RunService = Service.RunService
+local GuiInset = Service.GuiService:GetGuiInset()
+local ReplicatedStorage = Service.ReplicatedStorage
+local UserInputService = Service.UserInputService
+local KeyCode = Enum.KeyCode
+local InputType = Enum.UserInputType
+local Material = Enum.Material
+local UniversalAnimation = Instance.new("Animation")
+local StarterGui = Service.StarterGui
+
+local Module = {
+Instance = {},
+Players = {},
+DrawingInstance = {},
+OldCFrame,
+Ignores = {
+    "UpperTorso",
+    "LowerTorso",
+    "Head",
+    "LeftHand",
+    "LeftUpperArm",
+    "LeftLowerArm",
+    "RightHand",
+    "RightUpperArm",
+    "RightLowerArm"
+},
+BodyParts = {
+    "Head",
+    "Torso",
+    "HumanoidRootPart",
+    "Left Arm",
+    "Right Arm",
+    "Left Leg",
+    "Right Leg"
+},	
+Functions = {
+    Network = function(Data)
+        if Data and Data.Character and Data.Character:FindFirstChild("HumanoidRootPart") ~= nil and Data.Character:FindFirstChild("Humanoid") ~= nil and Data.Character:FindFirstChild("Head") ~= nil then
+            return true
+        end
+        return false
+    end,
+    Cham = function(Data, State)
+        local BoxVar = nil
+        local GlowVar = nil
+        if State then
+            for _, v in pairs(Data.Character:GetChildren()) do
+                if v:IsA("BasePart") and v.Transparency ~= 1 then
+                    if not v:FindFirstChild("Box") then
+                        BoxVar = Instance.new("BoxHandleAdornment", v)
+                        BoxVar.Name = "Box"
+                        BoxVar.AlwaysOnTop = true
+                        BoxVar.ZIndex = 4
+                        BoxVar.Adornee = v
+                        BoxVar.Color3 = Color3.new(1, 0.121568, 0.196078)
+                        BoxVar.Transparency = 0.5
+                        BoxVar.Size = v.Size + Vector3.new(0.02, 0.02, 0.02)
+                    end
+                end
+            end
+        else
+            for i, v in pairs(Data.Character:GetChildren()) do
+                if v:IsA("BasePart") and v.Transparency ~= 1 then
+                    if v:FindFirstChild("Box") then
+                        v["Box"]:Destroy()
+                    end
+                end
+            end
+            
+            return BoxVar, GlowVar
+        end
+    end
+},
+Drawing = {
+    Circle = function(Thickness)
+        local Circle = Drawing.new("Circle")
+        Circle.Transparency = 1
+        Circle.Thickness = Thickness
+        return Circle
+    end
+},
+}
+
+Module.Functions.NoSpace = function(Data)
+return Data:gsub("%s+", "") or Data
+end
+
+Module.Functions.Find = function(Data)
+local Target = nil
+
+for i, v in next, Players:GetPlayers() do
+    if v.Name ~= LocalPlayer.Name and v.Name:lower():match('^'.. Module.Functions.NoSpace(Data):lower()) then
+        Target = v.Name
+    end
+end
+
+return Target
+end
+
+Module.Functions.PlayAnimation = function(Data, SpeedData, ActionData)
+if Module.Functions.Network(LocalPlayer) then
+    UniversalAnimation.AnimationId = "rbxassetid://" .. tostring(Data)
+    local Track = LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):LoadAnimation(UniversalAnimation)
+    if ActionData then
+        Track.Priority = Enum.AnimationPriority.Action
+    end
+    if SpeedData ~= nil then
+        Track:AdjustSpeed(SpeedData)
+    end
+    Track:Play()
+end
+end
+
+Module.Functions.StopAnimation = function()
+if Module.Functions.Network(LocalPlayer) then
+    for _, v in next, LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks() do
+        if v.Animation.AnimationId:match("rbxassetid") then
+            v:Stop()
+        end
+    end
+end
+end
+
+Module.Functions.Underground = function(Data)
+if Module.Functions.Network(LocalPlayer) then
+    if Data then
+        LocalPlayer.Character.Humanoid.HipHeight = -1
+        Module.Functions.PlayAnimation(3152378852, nil, true)
+    else
+        LocalPlayer.Character.Humanoid.HipHeight = 2.1
+        Module.Functions.StopAnimation()
+    end
+end
+end
+
+Module.Functions.AntiHead = function(State)
+if Module.Functions.Network(LocalPlayer) then
+    if State then
+        Module.Functions.PlayAnimation(3189777795, 0.1, false)
+    else
+        Module.Functions.StopAnimation()
+    end
+end
+end
+
+Module.Functions.IsVisible = function(OriginPart, Part)
+if Module.Functions.Network(LocalPlayer) then
+    local IgnoreList = {CurrentCamera, LocalPlayer.Character, OriginPart.Parent}
+    local Parts = CurrentCamera:GetPartsObscuringTarget(
+        {
+            OriginPart.Position, 
+            Part.Position
+        },
+        IgnoreList
+    )
+
+    for i, v in pairs(Parts) do
+        if v.Transparency >= 0.3 then
+            Module.Instance[#Module.Instance + 1] = v
+        end
+
+        if v.Material == Enum.Material.Glass then
+            Module.Instance[#Module.Instance + 1] = v
+        end
+    end
+
+    return #Parts == 0
+end
+return true
+end
+
+Module.Functions.NilBody = function()
+if Module.Functions.Network(LocalPlayer) then
+    for i, v in pairs(LocalPlayer.Character:GetChildren()) do
+        if v:IsA("BasePart") or v:IsA("Part") or v:IsA("MeshPart") then
+            if v.Name ~= "HumanoidRootPart" then
+                v:Destroy()
+            end
+        end
+    end
+end
+end
+
+Module.Functions.TableRemove = function(Data, Data2)
+for i, v in pairs(Data) do
+    if v == Data2 then
+        Remove(Data, i)
+    end
+end
+end
+
+Module.Functions.GodFunc = function(Variable)
+LocalPlayer.Character.RagdollConstraints:Destroy()
+local Folder = Instance.new("Folder", LocalPlayer.Character)
+Folder.Name = "FULLY_LOADED_CHAR"
+wait()
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+Variable = false
+end
+
+Module.Functions.Init = function()
+for _, v in next, Players:GetPlayers() do
+    if v ~= LocalPlayer and v:IsFriendsWith(LocalPlayer.UserId) then
+        Insert(Settings.Whitelist.Friends, v.Name)
+    end
+end
+
+Players.PlayerAdded:Connect(function(_Player)
+    if _Player ~= LocalPlayer and _Player:IsFriendsWith(LocalPlayer.UserId) then
+        Insert(Settings.Whitelist.Friends, _Player.Name)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(_Player)
+    if _Player ~= LocalPlayer and _Player:IsFriendsWith(LocalPlayer.UserId) then
+        Module.Functions.TableRemove(Settings.Whitelist.Friends, _Player.Name)
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    wait(0.5)
+    Settings.God.IsStillAlive = false
+    if LocalPlayer.Character:FindFirstChild("BodyEffects") then
+        if Settings.God.GodBullet then
+            Module.Functions.GodFunc(Settings.God.GodBullet)
+            LocalPlayer.Character.BodyEffects.BreakingParts:Destroy()
+        end
+        if Settings.God.GodMelee then
+            Module.Functions.GodFunc(Settings.God.GodMelee)
+            Settings.God.IsStillAlive = true
+            LocalPlayer.Character.BodyEffects.Armor:Destroy()
+            LocalPlayer.Character.BodyEffects.Defense:Destroy()
+        end
+        if Settings.God.AntiRagdoll then
+            Module.Functions.GodFunc(Settings.God.AntiRagdoll)
+        end
+    end
+    wait(0.5)
+    if Settings.AntiAim.Underground then
+        Module.Functions.Underground(true)
+    end
+    wait(0.4)
+    if Settings.AntiAim.UndergroundWallbang then
+        Float = Instance.new("BodyVelocity")
+        Float.Parent = LocalPlayer.Character.HumanoidRootPart
+        Float.MaxForce = Vector3.new(100000, 100000, 100000)
+        Float.Velocity = Vector3.new(0, 0, 0)
+        wait(0.25)
+        LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, -11.5, 0)
+        Module.Functions.Cham(LocalPlayer, true)
+        Settings.AntiAim.UndergroundWallbang = true
+    end
+end)
+end
+
+Module.Functions.NearestMouse = function()
+local Target = nil
+local Distance = math.huge
+
+for _, v in next, Players:GetPlayers() do
+    if Module.Functions.Network(v) and v ~= LocalPlayer then
+        local RootPosition, RootVisible = WorldToViewPortPoint(CurrentCamera, v.Character.HumanoidRootPart.Position)
+        local NearestToMouse = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(RootPosition.X, RootPosition.Y)).magnitude
+        if RootVisible and Distance > NearestToMouse then
+            if (not Settings.Whitelist.FriendsWhitelist or not Find(Settings.Whitelist.Friends, v.Name)) and (not Settings.Whitelist.CrewEnabled or v:FindFirstChild("DataFolder") and v.DataFolder.Information:FindFirstChild("Crew") and not tonumber(v.DataFolder.Information.Crew.Value) == tonumber(LocalPlayer.DataFolder.Information.Crew.Value)) and (not Settings.Whitelist.Enabled or not Find(Settings.Whitelist.Players, v.Name)) then
+                Target = v
+                Distance = NearestToMouse
+            end
+        end
+    end
+end
+
+return Target, Distance
+end
+
+Module.Functions.NearestRoot = function()
+local Target = nil
+local Distance = math.huge
+
+for _, v in next, Players:GetPlayers() do
+    if Module.Functions.Network(v) and Module.Functions.Network(LocalPlayer) and v ~= LocalPlayer then
+        local NearestToRoot = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude
+        if Distance > NearestToRoot then
+            if (not Settings.Whitelist.FriendsWhitelist or not Find(Settings.Whitelist.Friends, v.Name)) and (not Settings.Whitelist.CrewEnabled or v:FindFirstChild("DataFolder") and v.DataFolder.Information:FindFirstChild("Crew") and not tonumber(v.DataFolder.Information.Crew.Value) == tonumber(LocalPlayer.DataFolder.Information.Crew.Value)) and (not Settings.Whitelist.Enabled or not Find(Settings.Whitelist.Players, v.Name)) then
+                Target = v
+                Distance = NearestToRoot
+            end
+        end
+    end
+end
+
+return Target, Distance
+end
+
+Module.Functions.TargetCheck = function(Data)
+if Data == "Mouse" then
+    return Module.Functions.NearestMouse()
+elseif Data == "Distance" then
+    return Module.Functions.NearestRoot()
+end
+end
+
+Module.Functions.Invisible = function()
+if Module.Functions.Network(LocalPlayer) then
+    Module.OldCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+    wait(0.1)
+    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 96995694596945934234234234, 0)
+    wait(0.1)
+    LocalPlayer.Character.LowerTorso.Root:Destroy()
+    for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+        if v:IsA("MeshPart") and not table.find(Module.Ignores, v.Name) then
+            v:Destroy()
+        end
+    end
+    wait(0.1)
+    LocalPlayer.Character.HumanoidRootPart.CFrame = Module.OldCFrame
+end
+end
+
+Module.Functions.Spin = function(Speed)
+if Module.Functions.Network(LocalPlayer) then
+    LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(Speed), 0)
+end
+end
+
+Module.Functions.HttpGet = function(Data)
+return loadstring(game:HttpGet(Data))()
+end
+
+
+-- Ui Library --
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Moonassistv3/MoonAssistV3/main/libraries/library.txt"))()
+local NotifyLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/Moonassistv3/MoonAssistV3/main/libraries/notif.txt"))()
+local Notify = NotifyLibrary.Notify
+
+Library.theme.topheight = 50
+Library.theme.accentcolor = Color3.fromRGB(28, 56, 139)
+Library.theme.accentcolor2 = Color3.fromRGB(28, 56, 139)
+Library.theme.fontsize = 15
+Library.theme.titlesize = 17
+
+local Window = Library:CreateWindow(Script.Name, Vector2.new(492, 598), Enum.KeyCode.RightShift)
+
+
+
+--Silent Aim Tab--
+local LegitTab = Window:CreateTab("Aiming")
+
+local SilentAimSection = LegitTab:CreateSector("Silent Aim (Remade)", "left")
+
+local SilentToggle = SilentAimSection:AddToggle('Silent Aim', false, function(State)
+Settings.SilentAim.Enabled = State
+end)
+
+SilentAimSection:AddToggle('Ping Based Prediction',false,function(State)
+Settings.Prediction_Settings.AutoSettings = State
+end)
+
+SilentAimSection:AddToggle('Visible Check', false, function(State)
+Settings.SilentAim.VisibleCheck = State
+end)
+
+SilentAimSection:AddToggle('Ignore FOV', false, function(State)
+Settings.SilentAim.IgnoreFOV = State
+end)
+
+SilentAimSection:AddDropdown('Modes', {"Normal", "Insane"}, "Insane", false, function(Option)
+Settings.SilentAim.Mode = Option
+end)
+
+SilentAimSection:AddDropdown('Hitbox', {"Head", "HumanoidRootPart"}, "Head", false, function(Option)
+Settings.SilentAim.Hitbox = Option
+end)
+
+SilentAimSection:AddDropdown('Nearest', {"Mouse", "Distance"}, "Mouse", false, function(Option)
+Settings.SilentAim.Nearest = Option
+end)
+
+local FOVSection = LegitTab:CreateSector("Silent Aim/Aimbot FOV", "left")
+
+FOVSection:AddToggle('Enabled', false, function(State)
+Settings.SilentAim.FOV.Enabled = State
+end)
+
+FOVSection:AddToggle('Filled Fov', false, function(State)
+Settings.SilentAim.FOV.Filled = State
+end)
+
+FOVSection:AddDropdown('Shape', {"Custom", "Octagon", "Circle"}, "Custom", false, function(Option)
+Settings.SilentAim.FOV.Shape = Option
+end)
+
+FOVSection:AddSlider("Size", 25, 100, 500, 1, function(Value)
+Settings.SilentAim.FOV.Size = Value
+end)
+
+FOVSection:AddSlider("Round", 2.5, 20, 19, 1, function(Value)
+Settings.SilentAim.FOV.Round = Value
+end)
+
+FOVSection:AddSlider("Transparency", 1, 5, 9, 1, function(Value)
+Settings.SilentAim.FOV.Transparency = tonumber("0." .. Value)
+end)
+
+FOVSection:AddColorpicker("Color", Settings.SilentAim.FOV.Color, function(Color)
+Settings.SilentAim.FOV.Color = Color
+end)
+
+
+local MainSection = LegitTab:CreateSector("Notification Mode (Q)", "right")
+
+MainSection:AddToggle('Enabled', false, function(State)
+Settings.Target.Enabled = State
+end)
+
+MainSection:AddToggle('Wall Check', false, function(State)
+Settings.Target.WallCheck = State
+end)
+
+local AimbotSection = LegitTab:CreateSector("Aimbot", "right")
+
+local AimbotToggle = AimbotSection:AddToggle('Enabled', false, function(State)
+Settings.Aimbot.Enabled = State
+end)
+
+AimbotSection:AddToggle('Wall Check', false, function(State)
+Settings.Aimbot.VisibleCheck = State
+end)
+
+AimbotSection:AddDropdown('Hitbox', {"Head", "HumanoidRootPart"}, "Head", false, function(Option)
+Settings.Aimbot.Hitbox = Option
+end)
+
+AimbotSection:AddDropdown('Nearest', {"Mouse", "Distance"}, "Mouse", false, function(Option)
+Settings.Aimbot.Nearest = Option
+end)
+
+local WhitelistSection = LegitTab:CreateSector("Whitelist", "right")
+
+WhitelistSection:AddTextbox("Player Username", nil, function(Text)
+if Text ~= nil and Module.Functions.Find(Text) ~= nil and Players:FindFirstChild(Module.Functions.Find(Text)) then
+    Settings.Whitelist.Holder = Module.Functions.Find(Text)
+else
+    Notify({
+        Title = Script.Name,
+        Description = "Player is not found.",
+        Duration = 3
+    })
+end
+end)
+
+WhitelistSection:AddButton('Add Whitelist', function(State)
+if Settings.Whitelist.Holder ~= nil and Players:FindFirstChild(Settings.Whitelist.Holder) then
+    if Find(Settings.Whitelist.Players, Settings.Whitelist.Holder) then
+        Notify({
+            Title = Script.Name,
+            Description = Settings.Whitelist.Holder .. " is whitelisted.",
+            Duration = 3
+        })
+    else
+        Insert(Settings.Whitelist.Players, Settings.Whitelist.Holder)
+        Notify({
+            Title = Script.Name,
+            Description = "Whitelisted " .. Settings.Whitelist.Holder,
+            Duration = 3
+        })
+    end
+else
+    Notify({
+        Title = Script.Name,
+        Description = "Player is not found.",
+        Duration = 3
+    })
+end
+end)
+
+WhitelistSection:AddButton('Remove Whitelist', function()
+if Settings.Whitelist.Holder ~= nil and Players:FindFirstChild(Settings.Whitelist.Holder) then
+    if Find(Settings.Whitelist.Players, Settings.Whitelist.Holder) then
+        Module.Functions.TableRemove(Settings.Whitelist.Players, Settings.Whitelist.Holder)
+        Notify({
+            Title = Script.Name,
+            Description = "Removed " .. Settings.Whitelist.Holder,
+            Duration = 5
+        })
+    else
+        Notify({
+            Title = Script.Name,
+            Description = Settings.Whitelist.Holder .. " is not whitelisted.",
+            Duration = 5
+        })
+    end
+else
+    Notify({
+        Title = Script.Name,
+        Description = "Player is not found.",
+        Duration = 3
+    })
+end
+end)
+
+--Misc Tab--
+local Misctablolxdrawruwu = Window:CreateTab("Miscellanous")
+local sector18 = Misctablolxdrawruwu:CreateSector("Misc", "left")
+
+sector18:AddButton("Fake macro (Z)", function()
+    superhuman = false
+    plr = game.Players.LocalPlayer
+    mouse = plr:GetMouse()
+    mouse.KeyDown:connect(function(key)
+        if key == "z" and superhuman == false then
+            superhuman = true
+            game.Players.LocalPlayer.Character.Humanoid.Name = "Humz"
+            game.Players.LocalPlayer.Character.Humz.WalkSpeed = 455
+            game.Players.LocalPlayer.Character.Humz.JumpPower = 50
+        elseif key == "z" and superhuman == true then
+            superhuman = false
+            game.Players.LocalPlayer.Character.Humz.WalkSpeed = 16
+            game.Players.LocalPlayer.Character.Humz.JumpPower = 50
+            game.Players.LocalPlayer.Character.Humz.Name = "Humanoid"
+        end
+    end)
+end)
+
+sector18:AddButton("Fly", function()
+    local plr = game.Players.LocalPlayer
+    local mouse = plr:GetMouse()
+    
+    localplayer = plr
+    
+    if workspace:FindFirstChild("Core") then
+    workspace.Core:Destroy()
+    end
+    
+    local Core = Instance.new("Part")
+    Core.Name = "Core"
+    Core.Size = Vector3.new(0.05, 0.05, 0.05)
+    
+    spawn(function()
+    Core.Parent = workspace
+    local Weld = Instance.new("Weld", Core)
+    Weld.Part0 = Core
+    Weld.Part1 = localplayer.Character.LowerTorso
+    Weld.C0 = CFrame.new(0, 0, 0)
+    end)
+    
+    workspace:WaitForChild("Core")
+    
+    local torso = workspace.Core
+    flying = true
+    local speed=20
+    local keys={a=false,d=false,w=false,s=false}
+    local e1
+    local e2
+    local function start()
+    local pos = Instance.new("BodyPosition",torso)
+    local gyro = Instance.new("BodyGyro",torso)
+    pos.Name="EPIXPOS"
+    pos.maxForce = Vector3.new(math.huge, math.huge, math.huge)
+    pos.position = torso.Position
+    gyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    gyro.cframe = torso.CFrame
+    repeat
+    wait()
+    localplayer.Character.Humanoid.PlatformStand=true
+    local new=gyro.cframe - gyro.cframe.p + pos.position
+    if not keys.w and not keys.s and not keys.a and not keys.d then
+    speed=20
+    end
+    if keys.w then
+    new = new + workspace.CurrentCamera.CoordinateFrame.lookVector * speed
+    speed=speed+0
+    end
+    if keys.s then
+    new = new - workspace.CurrentCamera.CoordinateFrame.lookVector * speed
+    speed=speed+0
+    end
+    if keys.d then
+    new = new * CFrame.new(speed,0,0)
+    speed=speed+0
+    end
+    if keys.a then
+    new = new * CFrame.new(-speed,0,0)
+    speed=speed+0
+    end
+    if speed>20 then
+    speed=5
+    end
+    pos.position=new.p
+    if keys.w then
+    gyro.cframe = workspace.CurrentCamera.CoordinateFrame*CFrame.Angles(-math.rad(speed*0),0,0)
+    elseif keys.s then
+    gyro.cframe = workspace.CurrentCamera.CoordinateFrame*CFrame.Angles(math.rad(speed*0),0,0)
+    else
+    gyro.cframe = workspace.CurrentCamera.CoordinateFrame
+    end
+    until flying == false
+    if gyro then gyro:Destroy() end
+    if pos then pos:Destroy() end
+    flying=false
+    localplayer.Character.Humanoid.PlatformStand=false
+    speed=10
+    end
+    e1=mouse.KeyDown:connect(function(key)
+    if not torso or not torso.Parent then flying=false e1:disconnect() e2:disconnect() return end
+    if key=="w" then
+    keys.w=true
+    elseif key=="s" then
+    keys.s=true
+    elseif key=="a" then
+    keys.a=true
+    elseif key=="d" then
+    keys.d=true
+    elseif key=="x" then
+    if flying==true then
+    flying=false
+    else
+    flying=true
+    start()
+    end
+    end
+    end)
+    e2=mouse.KeyUp:connect(function(key)
+    if key=="w" then
+    keys.w=false
+    elseif key=="s" then
+    keys.s=false
+    elseif key=="a" then
+    keys.a=false
+    elseif key=="d" then
+    keys.d=false
+    end
+    end)
+    start()
+        end)
+
+        sector18:AddButton("Moons Script Hub", function()
+--coming soon
+        end)
+
+
+--
+
+           local sector19 = Misctablolxdrawruwu:CreateSector("Faces (Client Sided)", "left")
+          
+
+sector19:AddButton("Headless", function()
+    game.Players.LocalPlayer.Character.Head.Transparency = 1
+    for i,v in pairs(game.Players.LocalPlayer.Character.Head:GetChildren()) do
+    if (v:IsA("Decal")) then
+    v:Destroy()
+    end
+    end
+end)
+
+sector19:AddButton("Korblox", function()
+    local ply = game.Players.LocalPlayer
+    local chr = ply.Character
+    chr.RightLowerLeg.MeshId = "902942093"
+    chr.RightLowerLeg.Transparency = "1"
+    chr.RightUpperLeg.MeshId = "http://www.roblox.com/asset/?id=902942096"
+    chr.RightUpperLeg.TextureID = "http://roblox.com/asset/?id=902843398"
+    chr.RightFoot.MeshId = "902942089"
+    chr.RightFoot.Transparency = "1"
+end)
+
+           sector19:AddButton("Yum", function()
+               game.Players.LocalPlayer.Character.Head.face.Texture = "rbxassetid://720921501"
+           end)  
+   
+           sector19:AddButton("Beast Mode", function()
+               game.Players.LocalPlayer.Character.Head.face.Texture = "rbxassetid://265790768"
+           end)
+   
+           sector19:AddButton("Playful Vampire", function()
+               game.Players.LocalPlayer.Character.Head.face.Texture = "rbxassetid://6982506164"
+           end)
+
+
+--
+WhitelistSection:AddToggle('Whitelist Enabled', false, function(State)
+Settings.Whitelist.Enabled = State
+end)
+
+WhitelistSection:AddToggle('Crew Whitelist', false, function(State)
+Settings.Whitelist.CrewEnabled = State
+end)
+
+WhitelistSection:AddToggle('Friends Whitelist', false, function(State)
+Settings.Whitelist.FriendsWhitelist = State
+end)
+
+ -- Visuals Window --
+local ESPLibrary = Module.Functions.HttpGet("https://raw.githubusercontent.com/Moonassistv3/MoonAssistV3/main/libraries/esp/esp.lua.txt")    
+local VisualsTab = Window:CreateTab("Visuals")
+local CrosshairTab = Window:CreateTab("Quit")
+
+
+
+
+
+
+
+
+
+local ESPSection = VisualsTab:CreateSector("ESP", "left")
+
+ESPSection:AddToggle('Box And HP', false, function(Boolean)
+    PikaESPSettings.Box = Boolean
+end)
+
+ESPSection:AddToggle('Tracer ESP', false, function(Boolean)
+    PikaESPSettings.Tracers = Boolean
+end)
+
+ESPSection:AddToggle('Name ESP', false, function(Boolean)
+    PikaESPSettings.Name = Boolean
+end)
+
+
+
+
+local LocalSection = VisualsTab:CreateSector("FOV", "left")
+
+local FOVToggle = LocalSection:AddSlider('FOV Changer', 70, 0, 120, 5, function(value) 
+    game:GetService'Workspace'.Camera.FieldOfView = value
+end)
+
+
+
+local CreditsTab = Window:CreateTab("Other")
+
+local sector55 = CreditsTab:CreateSector("♡", "right")
+
+sector55:AddButton("Ui Made By Vault", function()
+
+ end)
+
+ local sector55 = CreditsTab:CreateSector("♡.", "left")
+
+ sector55:AddButton("SC by Moon.", function()
+
+ end)
+
+
+UserInputService.InputBegan:Connect(function(Key, Break)
+if Key.UserInputType == InputType.MouseButton2 and not Break then
+    Settings.Aimbot.Aiming = true
+end
+if Key.UserInputType == InputType.MouseButton1 and not Break then
+    if Module.Functions.Network(LocalPlayer) then
+        if LocalPlayer.Character:FindFirstChildOfClass("Tool") and LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Ammo") and LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Ammo").Value ~= 0 then
+            Settings.KillSay.OldPlayer = Module.Functions.TargetCheck(Settings.SilentAim.Nearest).Name
+            Settings.KillSay.Cooldown = true
+            spawn(function()
+                wait(1)
+                Settings.KillSay.Cooldown = false
+            end)
+        end
+    end
+    if Settings.SilentAim.Enabled and Settings.SilentAim.WallBang and Module.Functions.Network(LocalPlayer) then
+        if not Module.Functions.IsVisible(Module.Functions.TargetCheck(Settings.SilentAim.Nearest).Character.HumanoidRootPart, LocalPlayer.Character.HumanoidRootPart) and LocalPlayer.Character:FindFirstChildOfClass("Tool") and LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Ammo") and LocalPlayer.Character:FindFirstChildOfClass("Tool"):FindFirstChild("Ammo").Value ~= 0 then
+            if LocalPlayer.Character.RightHand:FindFirstChild("RightWrist") then
+                LocalPlayer.Character.RightHand:FindFirstChild("RightWrist"):Destroy()
+            end
+            wait(0.1)
+            LocalPlayer.Character.Humanoid:ChangeState(11)
+            LocalPlayer.Character.RightHand.CFrame = Module.Functions.TargetCheck(Settings.SilentAim.Nearest).Character.HumanoidRootPart.CFrame * CFrame.new(0, -1, 0)
+        end
+    end
+end
+if Key.KeyCode == Enum.KeyCode[Settings.Target.Bind] and not Break then
+    if Settings.Target.Enabled then
+        if Module.Functions.IsVisible(Module.Functions.TargetCheck(Settings.SilentAim.Nearest).Character.HumanoidRootPart, LocalPlayer.Character.HumanoidRootPart) then
+            Settings.Target.TargetUser = Module.Functions.TargetCheck(Settings.SilentAim.Nearest).Name
+            Notify({
+                Title = Script.Name .. " " .. Script.Version,
+                Description = "Targetted " .. Module.Functions.TargetCheck(Settings.SilentAim.Nearest).Name .. " (" .. Module.Functions.TargetCheck(Settings.SilentAim.Nearest).DisplayName .. ")",
+                Duration = 3
+            })
+        end
+    end
+end
+end)
+
+UserInputService.InputEnded:Connect(function(Key, Break)
+if Key.UserInputType == InputType.MouseButton2 and not Break then
+    Settings.Aimbot.Aiming = false
+end
+if Key.UserInputType == InputType.MouseButton1 and not Break then
+    if Module.Functions.Network(LocalPlayer) then
+        wait(0.75)
+        LocalPlayer.Character.RightHand.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 1, 0)
+    end
+end
+end)
+
+local __Index;
+__Index = hookmetamethod(game, "__index", function(t, k)
+if t == Mouse and (tostring(k) == "Hit" or tostring(k) == "Target") then
+    if Settings.Target.Enabled then
+        if Settings.Target.TargetUser ~= nil then
+            if Players:FindFirstChild(Settings.Target.TargetUser) ~= nil and Module.Functions.Network(Players[Settings.Target.TargetUser]) then
+                if (not Settings.Target.WallCheck or Module.Functions.IsVisible(Players[Settings.Target.TargetUser].Character.HumanoidRootPart, LocalPlayer.Character.HumanoidRootPart)) then
+                    local TargetBody
+                    if Players[Settings.Target.TargetUser].Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                        TargetBody = Players[Settings.Target.TargetUser].Character.LeftFoot
+                    else
+                        TargetBody = Players[Settings.Target.TargetUser].Character[Settings.SilentAim.Hitbox]
+                    end
+                    local Prediction = TargetBody.CFrame + (TargetBody.Velocity * Settings.Prediction_Settings.Prediction)
+
+                    return (tostring(k) == "Hit" and Prediction or tostring(k) == "Target" and TargetBody)
+                end
+            end
+        end
+    else
+        if Settings.SilentAim.Enabled then
+            local NearestTarget, NearestPos = Module.Functions.TargetCheck(Settings.SilentAim.Nearest)
+            if NearestTarget and (not Settings.SilentAim.VisibleCheck or Module.Functions.IsVisible(NearestTarget.Character.HumanoidRootPart, LocalPlayer.Character.HumanoidRootPart)) and (not Settings.SilentAim.FOV.Enabled or Settings.SilentAim.FOV.Size > NearestPos) then
+                local TargetBody
+                if NearestTarget.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall and Settings.SilentAim.Mode == "Insane" then
+                    TargetBody = NearestTarget.Character.LeftFoot
+                else
+                    TargetBody = NearestTarget.Character[Settings.SilentAim.Hitbox]
+                end
+
+                local Prediction 
+                if Settings.Prediction_Settings.AutoSettings then
+                    Prediction = TargetBody.CFrame + (TargetBody.Velocity * Settings.Prediction_Settings.Prediction)
+                else
+                    Prediction = TargetBody.CFrame + (TargetBody.Velocity * 0.165)
+                end
+
+                return (tostring(k) == "Hit" and Prediction or tostring(k) == "Target" and TargetBody)
+            end
+        end
+    end
+end
+
+return __Index(t, k)
+end)
+
+local __Namecall;
+__Namecall = hookmetamethod(game, "__namecall", function(self, ...)
+local Args = {...}
+local Method = getnamecallmethod()
+
+if tostring(self.Name) == "MainEvent" and tostring(Method) == "FireServer" then
+    if Args[1] == "TeleportDetect" or Args[1] == "CHECKER_1" or Args[1] == "OneMoreTime" then
+        return
+    end
+end
+
+return __Namecall(self, ...)
+end)
+
+if not Module.DrawingInstance["FOV"] then
+Module.DrawingInstance["FOV"] = Module.Drawing.Circle(1)
+end
+
+if not Module.DrawingInstance["FOV2"] then
+Module.DrawingInstance["FOV2"] = Module.Drawing.Circle(1)
+end
+
+RunService.RenderStepped:Connect(function()
+if Settings.Prediction_Settings.AutoSettings then
+    local PingStats = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
+    local Value = tostring(PingStats)
+    local PingValue = Value:split(" ")
+    local PingNumber = tonumber(PingValue[1])
+
+        Settings.Prediction_Settings.Prediction = PingNumber / 1000 + 0.037
+end
+
+if Settings.Aimbot.Enabled and Settings.Aimbot.Aiming then
+    local NearestTarget, NearestPos = Module.Functions.TargetCheck(Settings.Aimbot.Nearest)
+    if NearestTarget and (not Settings.Aimbot.VisibleCheck or Module.Functions.IsVisible(NearestTarget.Character.HumanoidRootPart, LocalPlayer.Character.HumanoidRootPart)) and (not Settings.Aimbot.FOV.Enabled or Settings.Aimbot.FOV.Size > NearestPos) then
+        local Prediction = NearestTarget.Character[Settings.Aimbot.Hitbox].CFrame + (NearestTarget.Character[Settings.Aimbot.Hitbox].Velocity * Settings.Prediction_Settings.Prediction)
+        CurrentCamera.CFrame = CFrame.lookAt(CurrentCamera.CFrame.Position, Prediction.Position)
+    end
+end
+
+if Settings.SilentAim.FOV.Enabled then
+    Module.DrawingInstance["FOV"].Visible = true
+    Module.DrawingInstance["FOV"].Radius = Settings.SilentAim.FOV.Size
+    Module.DrawingInstance["FOV"].Transparency = Settings.SilentAim.FOV.Transparency
+    Module.DrawingInstance["FOV"].Filled = Settings.SilentAim.FOV.Filled
+    if Settings.SilentAim.FOV.Shape == "Custom" then
+        Module.DrawingInstance["FOV"].NumSides = Settings.SilentAim.FOV.Round
+    elseif Settings.SilentAim.FOV.Shape == "Octagon" then
+        Module.DrawingInstance["FOV"].NumSides = 12.5
+    else 
+        Module.DrawingInstance["FOV"].NumSides = 100
+    end
+    Module.DrawingInstance["FOV"].Color = Settings.SilentAim.FOV.Color
+    Module.DrawingInstance["FOV"].Position = Vector2.new(Mouse.X, Mouse.Y + GuiInset.Y)
+else
+    Module.DrawingInstance["FOV"].Visible = false
+end
+
+if Settings.Aimbot.FOV.Enabled then
+    Module.DrawingInstance["FOV2"].Visible = true
+    Module.DrawingInstance["FOV2"].Radius = Settings.Aimbot.FOV.Size
+    Module.DrawingInstance["FOV2"].Transparency = Settings.Aimbot.FOV.Transparency
+    Module.DrawingInstance["FOV2"].Filled = Settings.Aimbot.FOV.Filled
+    if Settings.Aimbot.FOV.Shape == "Custom" then
+        Module.DrawingInstance["FOV2"].NumSides = Settings.Aimbot.FOV.Round
+    elseif Settings.Aimbot.FOV.Shape == "Octagon" then
+        Module.DrawingInstance["FOV2"].NumSides = 12.5
+    else 
+        Module.DrawingInstance["FOV"].NumSides = 100
+    end
+    Module.DrawingInstance["FOV2"].Color = Settings.Aimbot.FOV.Color
+    Module.DrawingInstance["FOV2"].Position = Vector2.new(Mouse.X, Mouse.Y + GuiInset.Y)
+else
+    Module.DrawingInstance["FOV2"].Visible = false
+end
+
+if Module.Functions.Network(LocalPlayer) then
+    local Char = LocalPlayer.Character
+    local Root = Char.HumanoidRootPart
+    local Hum = Char.Humanoid
+
+    if Settings.ServerCrash.Enabled then
+        Hum:ChangeState(11)
+    end
+    if Settings.AntiAim.NoAutoRotate then
+        Hum.AutoRotate = false
+    else
+        Hum.AutoRotate = true
+    end
+
+    if Settings.AntiAim.AntiPointAt then
+        for i, v in next, Players:GetPlayers() do
+            if v ~= LocalPlayer and Module.Functions.Network(v) and Module.Functions.Network(LocalPlayer) then
+                local BodyEffects = v.Character:FindFirstChild("BodyEffects")
+                local MousePos = BodyEffects:FindFirstChild("MousePos")
+                if BodyEffects ~= nil and MousePos ~= nil then
+                    local EnemyMouseMagnitude = (LocalPlayer.Character.HumanoidRootPart.Position - MousePos.Value).Magnitude
+                    if Settings.AntiAim.AntiPointAtDistance > EnemyMouseMagnitude then
+                        Root.CFrame = Root.CFrame * CFrame.new(math.random(1, 2) == 1 and 2 or -2, 0, 0)
+                    end
+                end
+            end
+        end
+    end
+
+
+
+    if Settings.AntiAim.Enabled then
+        if Settings.AntiAim.Type == "Jitter" then
+            Module.Functions.Jitter(Settings.AntiAim.Speed, Settings.AntiAim.Angle)
+        else
+            Module.Functions.Spin(Settings.AntiAim.Speed)
+        end
+    end
+end
+end)
+
+--- end of things ---
+
+local plr = game:GetService("Players").LocalPlayer
+if plr:IsInGroup("41333333333333333333333333") then 
+
+     else
+setclipboard(tostring("Not Giving out wl anymore"))
+        wait(0.2)
+    plr:Kick("Whitelist not active (OUTDATED)")
+end
+
+--// group for the script to work
+
+
+while wait() do
+if Module.Functions.Network(LocalPlayer) then
+    local Char = LocalPlayer.Character
+    local Root = Char.HumanoidRootPart
+    local Hum = Char.Humanoid
+
+
+end
+end
